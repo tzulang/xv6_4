@@ -463,3 +463,23 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+// set pids to contain all the current pids number 
+// returns the number of elemets in pids
+int getProcPIDS (int *pids){
+
+  struct proc *p;
+  int count =0;
+  acquire(& ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+
+      if ( p->state==SLEEPING ||  p->state==RUNNABLE || p->state==RUNNING )
+         pids[count]= p->pid;
+         count++;
+
+  }
+  
+  release(& ptable.lock);
+  return count;
+
+}
