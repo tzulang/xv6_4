@@ -471,11 +471,13 @@ int getProcPIDS (int *pids){
   struct proc *p;
   int count =0;
   acquire(& ptable.lock);
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+  for(p = ptable.proc; p< &ptable.proc[NPROC]; p++){
 
-      if ( p->state==SLEEPING ||  p->state==RUNNABLE || p->state==RUNNING )
+      if  ((p->state==SLEEPING ||  p->state==RUNNABLE || p->state==RUNNING )){
          pids[count]= p->pid;
+      	 //cprintf("%d   ", pids[count]);
          count++;
+      }
 
   }
   
@@ -483,3 +485,33 @@ int getProcPIDS (int *pids){
   return count;
 
 }
+
+
+// locks ptable
+void procLock(){
+	acquire(&ptable.lock);
+}
+
+// release ptable
+void procRelease(){
+	release(&ptable.lock);
+}
+
+
+// returns the process struct with the current pid number
+// if process is not found, or not alive the function return null
+struct proc * getProc (int pid){
+
+  struct proc *p;
+
+  for(p = ptable.proc; p< &ptable.proc[NPROC]; p++){
+      if  (p->pid(p->state==SLEEPING ||  p->state==RUNNABLE || p->state==RUNNING )){
+    	  return p;
+      }
+
+  }
+  return 0;
+
+}
+
+
