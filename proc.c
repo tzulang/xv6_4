@@ -500,12 +500,12 @@ void procRelease(){
 
 // returns the process struct with the current pid number
 // if process is not found, or not alive the function return null
-struct proc * getProc (int pid){
+struct proc* getProc (int pid){
 
   struct proc *p;
 
   for(p = ptable.proc; p< &ptable.proc[NPROC]; p++){
-      if  (p->pid(p->state==SLEEPING ||  p->state==RUNNABLE || p->state==RUNNING )){
+      if  (p->pid && (p->state==SLEEPING ||  p->state==RUNNABLE || p->state==RUNNING )){
     	  return p;
       }
 

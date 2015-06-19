@@ -17,6 +17,7 @@ extern struct proc* getProc (int pid);
 extern void procLock();
 extern void procRelease();
 
+int  atoi(const char *s);
 int  itoa(int num , char *stringNum );
 
 #define BASE_INUM 1000;
@@ -71,7 +72,7 @@ int getProcList(char *buf, struct inode *pidIp) {
 
 
   //create "this dir" reference
-  de.inum = pidIp->inum;
+  de.inum = procfsInum;
   memmove(de.name, ".", 2);
   memmove(buf, (char*)&de, sizeof(de));
 
@@ -100,13 +101,10 @@ int getProcList(char *buf, struct inode *pidIp) {
 
 
 
-int getProcEntry(char StringPid ,char *buf) {
+int getProcEntry(int pid ,char *buf, struct inode *ip) {
 
   struct dirent de;
-  int pidCount;
-  int bufOff= 2;
 
-  int pid = atoi(StringPid);
   struct proc *p;
   procLock();
 
@@ -119,7 +117,8 @@ int getProcEntry(char StringPid ,char *buf) {
 
 
   //create "this dir" reference
-  de.inum = procfsInum;
+  de.inum = ip->inum;
+
   memmove(de.name, ".", 2);
   memmove(buf, (char*)&de, sizeof(de));
 
@@ -163,16 +162,20 @@ procfsread(struct inode *ip, char *dst, int off, int n) {
   char buf[1024];
   int size;
 
-  if (procfsInum == -1)
-    procfsInum = ip->inum;
 
-  if (ip->inum == procfsInum) {
-    size = getProcList(buf	);
-  }
-  if (ip->inum == 1234) {
-    memmove(buf, "Hello world\n", 13);
-    size = 13;
-  }
+	  if (ip->inum == procfsInum) {
+		size = getProcList(buf, ip);
+	  } else {
+		  size = getProcEntry( ip->inum, buf, ip);
+	  }
+
+
+
+
+//  if (ip->inum == 1234) {
+//    memmove(buf, "Hello world\n", 13);
+//    size = 13;
+//  }
 
   if (off < size) {
     int rr = size - off;
@@ -224,4 +227,15 @@ int  itoa(int num , char *stringNum ){
 //    cprintf("%s %d \n", stringNum ,len);
     return len;
 }
- 
+
+int atoi(const char *s)
+{
+  int n;
+
+  n = 0;
+  while('0' <= *s && *s <= '9')
+    n = n*10 + *s++ - '0';
+  return n;
+}
+
+
