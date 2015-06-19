@@ -98,7 +98,7 @@ userinit(void)
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
-
+  p->exe=0;
   p->state = RUNNABLE;
 }
 
@@ -157,7 +157,10 @@ fork(void)
   safestrcpy(np->name, proc->name, sizeof(proc->name));
  
   pid = np->pid;
-
+  np->state = RUNNABLE;
+  np->exe = proc->exe;
+  safestrcpy(np->cmdline, proc->cmdline, sizeof( proc->cmdline));
+ 
   // lock to force the compiler to emit the np->state write last.
   acquire(&ptable.lock);
   np->state = RUNNABLE;

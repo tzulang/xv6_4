@@ -20,12 +20,13 @@ extern void procRelease();
 int  atoi(const char *s);
 int  itoa(int num , char *stringNum );
 
-#define BASE_INUM 1000;
-#define CMDLINE_INUM 10001;
-#define CWD_INUM 10002;
-#define EXE_INUM 10003;
-#define FDINFO_INUM 10004;
-#define STATUS_INUM 10005;
+#define BASE_INUM 1000
+#define BASE_INUM_LIM BASE_INUM+ NPROC
+#define CMDLINE_INUM 10001
+#define CWD_INUM 10002
+#define EXE_INUM 10003
+#define FDINFO_INUM 10004
+#define STATUS_INUM 10005
 
 
 int procfsInum;
@@ -36,12 +37,17 @@ procfsisdir(struct inode *ip) {
 
  if (first){
     procfsInum= ip->inum;
+    ip->minor =0;
     first= 0;
   }
 
 
   if (ip->inum == procfsInum)
 	  return 1;
+
+  if (ip->inum >= BASE_INUM && ip->inum <BASE_INUM_LIM)
+    return 1;
+  
   else return 0;
 }
 
@@ -50,12 +56,22 @@ procfsiread(struct inode* dp, struct inode *ip)
 {
 	// ip->flags = i_valid;
 	// ip->major = 2;
-  //if (ip->inum == 1234) {
+
+ // cprintf("**** iread  inmu dp %d ip %d\n", dp->inum, ip->inum);
+  //if (ip->inum >= BASE_INUM) {
     ip->type = T_DEV;
     ip->major = PROCFS;
+    ip->minor = dp->minor +1;
     ip->size = 0;
     ip->flags |= I_VALID;
+  //}
+//ip->type == T_DEV && devsw[ip->major].isdir && devsw[ip->major].isdir(ip)
+  // cprintf("**** iread  inmu dp %d ip %d\n", dp->inum, ip->inum);
 
+  // cprintf("**** iread  type %d isdir %d  isdir(ip) %d\n",  ip->type, devsw[ip->major].isdir, devsw[ip->major].isdir(ip));
+  // cprintf("**** iread  major dp %d ip %d\n", dp->major, ip->major);
+  // cprintf("**** iread  minor dp %d ip %d\n", dp->minor, ip->minor);
+    
 }
 
 int getProcList(char *buf, struct inode *pidIp) {
@@ -77,7 +93,7 @@ int getProcList(char *buf, struct inode *pidIp) {
   memmove(buf, (char*)&de, sizeof(de));
 
   //create "prev dir" reference -procfs Dir
-  de.inum = procfsInum;
+  de.inum = ROOTINO;
   memmove(de.name, "..", 3);
   memmove(buf + sizeof(de), (char*)&de, sizeof(de));
 
@@ -87,7 +103,8 @@ int getProcList(char *buf, struct inode *pidIp) {
   //push Pids as file entries
   for (pidIndex = 0; pidIndex< pidCount; pidIndex++){
 
-      de.inum = pidIndex + BASE_INUM ;
+      de.inum = pids[pidIndex] + BASE_INUM ;
+      
       stringNumLength = itoa(  pids[pidIndex], stringNum );
 
       memmove(de.name, stringNum, stringNumLength+1);
@@ -118,12 +135,12 @@ int getProcEntry(int pid ,char *buf, struct inode *ip) {
 
   //create "this dir" reference
   de.inum = ip->inum;
-
+   //cprintf(" ********* %d\n", ip->inum);
   memmove(de.name, ".", 2);
   memmove(buf, (char*)&de, sizeof(de));
 
   //create "prev dir" reference -root Dir
-  de.inum = ROOTINO;
+  de.inum = procfsInum;
   memmove(de.name, "..", 3);
   memmove(buf + sizeof(de), (char*)&de, sizeof(de));
 
@@ -161,21 +178,52 @@ int
 procfsread(struct inode *ip, char *dst, int off, int n) {
   char buf[1024];
   int size;
-
-
+    //cprintf("***********    %d \n", ip->inum);
+    if (first){
+      procfsInum= ip->inum;
+      ip->minor =0;
+      first= 0;
+    }
+    
 	  if (ip->inum == procfsInum) {
-		size = getProcList(buf, ip);
-	  } else {
-		  size = getProcEntry( ip->inum, buf, ip);
+		  size = getProcList(buf, ip);
+         // cprintf("HERE 1\n");
+    }
+
+    int pid =ip->inum - BASE_INUM;
+    struct proc * p= getProc(pid);
+    
+    if(!p)
+       return 0;
+
+    if (ip->minor == 1){
+		      
+        
+         size = getProcEntry(pid,buf, ip);
 	  }
+    if (ip->minor == 2) {
+        
 
+        switch (ip->inum ){
+         
+              case CMDLINE_INUM:
+                            cprintf ("****** %s \n", p->cmdline);
+                            size = sizeof(p->cmdline);
+                            memmove(buf, p->cmdline, size);
+                            break;
+              case CWD_INUM:
 
+                            size = sizeof(p->cwd);
+                            memmove(buf, p->cwd, size);
+                            break;
+              // case EXE_INUM:
 
+              //               size = sizeof(p->exe);
+              //               memmove(buf, p->cwd, size);
+              //               break; 
 
-//  if (ip->inum == 1234) {
-//    memmove(buf, "Hello world\n", 13);
-//    size = 13;
-//  }
+        }
+    }
 
   if (off < size) {
     int rr = size - off;

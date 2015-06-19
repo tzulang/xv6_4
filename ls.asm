@@ -227,6 +227,7 @@ ls(char *path)
  240:	8b 45 e0             	mov    -0x20(%ebp),%eax
  243:	83 c0 0e             	add    $0xe,%eax
  246:	c6 00 00             	movb   $0x0,(%eax)
+       
       if(stat(buf, &st) < 0){
  249:	8d 85 bc fd ff ff    	lea    -0x244(%ebp),%eax
  24f:	89 44 24 04          	mov    %eax,0x4(%esp)
@@ -619,7 +620,8 @@ stat(char *n, struct stat *st)
  4ec:	83 ec 28             	sub    $0x28,%esp
   int fd;
   int r;
-
+  
+  
   fd = open(n, O_RDONLY);
  4ef:	c7 44 24 04 00 00 00 	movl   $0x0,0x4(%esp)
  4f6:	00 

@@ -25,6 +25,9 @@ exec(char *path, char **argv)
   }
   ilock(ip);
   pgdir = 0;
+ 
+
+  
 
   // Check ELF header
   if(readi(ip, (char*)&elf, 0, sizeof(elf)) < sizeof(elf))
@@ -49,6 +52,9 @@ exec(char *path, char **argv)
     if(loaduvm(pgdir, (char*)ph.vaddr, ip, ph.off, ph.filesz) < 0)
       goto bad;
   }
+
+  proc->exe= ip;
+
   iunlockput(ip);
   end_op();
   ip = 0;
@@ -85,13 +91,14 @@ exec(char *path, char **argv)
     if(*s == '/')
       last = s+1;
   safestrcpy(proc->name, last, sizeof(proc->name));
-
+  safestrcpy(proc->cmdline, path, sizeof(path));
   // Commit to the user image.
   oldpgdir = proc->pgdir;
   proc->pgdir = pgdir;
   proc->sz = sz;
   proc->tf->eip = elf.entry;  // main
   proc->tf->esp = sp;
+  
   switchuvm(proc);
   freevm(oldpgdir);
   return 0;

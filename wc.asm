@@ -482,7 +482,8 @@ stat(char *n, struct stat *st)
  364:	83 ec 28             	sub    $0x28,%esp
   int fd;
   int r;
-
+  
+  
   fd = open(n, O_RDONLY);
  367:	c7 44 24 04 00 00 00 	movl   $0x0,0x4(%esp)
  36e:	00 
