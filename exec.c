@@ -67,6 +67,7 @@ exec(char *path, char **argv)
   clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
   sp = sz;
 
+ 
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
     if(argc >= MAXARG)
@@ -75,8 +76,12 @@ exec(char *path, char **argv)
     if(copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
       goto bad;
     ustack[3+argc] = sp;
+
+
   }
   ustack[3+argc] = 0;
+
+
 
   ustack[0] = 0xffffffff;  // fake return PC
   ustack[1] = argc;
@@ -91,7 +96,22 @@ exec(char *path, char **argv)
     if(*s == '/')
       last = s+1;
   safestrcpy(proc->name, last, sizeof(proc->name));
-  safestrcpy(proc->cmdline, path, sizeof(path));
+  safestrcpy(proc->cmdline, path, strlen(path)+1);
+//  cprintf( "path : %s \n", proc->cmdline);
+  for (i=0; i < MAXARGS; i++)  {
+	  if (argv[i]){
+		  safestrcpy(proc->args[i], argv[i], strlen(argv[i])+1);
+//		  cprintf( "arg : %s \n", proc->args[i]);
+	  }
+	  else proc->args[i][0]='\0';
+  }
+  
+
+
+  proc->cmdline[strlen(path)]=0 ;
+
+
+  // cprintf(" ******* cmdline %s\n", proc->cmdline);
   // Commit to the user image.
   oldpgdir = proc->pgdir;
   proc->pgdir = pgdir;

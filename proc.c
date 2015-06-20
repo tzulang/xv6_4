@@ -79,6 +79,7 @@ void
 userinit(void)
 {
   struct proc *p;
+  int i;
   extern char _binary_initcode_start[], _binary_initcode_size[];
   
   p = allocproc();
@@ -99,6 +100,11 @@ userinit(void)
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
   p->exe=0;
+
+  p->cmdline[0]= '\0';
+  for (i=0; i < MAXARGS; i++)
+      p->args[i][0]='\0';
+
   p->state = RUNNABLE;
 }
 
@@ -158,12 +164,21 @@ fork(void)
  
   pid = np->pid;
   np->state = RUNNABLE;
+
   np->exe = proc->exe;
-  safestrcpy(np->cmdline, proc->cmdline, sizeof( proc->cmdline));
- 
+
+  safestrcpy(np->cmdline, proc->cmdline, strlen(proc->cmdline));
+
+  for (i=0; i < MAXARGS; i++)  {
+  	  if (proc->args[i])
+  		  safestrcpy(np->args[i], proc->args[i], strlen(proc->args[i])+1);
+  	  else np->args[i][0]='\0';
+  }
+
   // lock to force the compiler to emit the np->state write last.
   acquire(&ptable.lock);
   np->state = RUNNABLE;
+
   release(&ptable.lock);
   
   return pid;
@@ -508,7 +523,7 @@ struct proc* getProc (int pid){
   struct proc *p;
 
   for(p = ptable.proc; p< &ptable.proc[NPROC]; p++){
-      if  (p->pid && (p->state==SLEEPING ||  p->state==RUNNABLE || p->state==RUNNING )){
+      if  (p->pid==pid  && (p->state==SLEEPING ||  p->state==RUNNABLE || p->state==RUNNING )){
     	  return p;
       }
 

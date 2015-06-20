@@ -1,5 +1,7 @@
 // Segments in proc->gdt.
 #define NSEGS     7
+#define MAXARGS   10
+#define Slength   100
 
 // Per-CPU state
 struct cpu {
@@ -68,7 +70,9 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   struct inode *exe;		   //saves the exec inode that invoked this processs
-  char cmdline[100];			   //saves the command line	that invoked this process
+  char cmdline[Slength];			   //saves the command line path	that invoked this process
+  char args[MAXARGS][Slength];         //saves the command line atgumants that invoked this process
+
 
 };
 
