@@ -163,10 +163,10 @@ fork(void)
   safestrcpy(np->name, proc->name, sizeof(proc->name));
  
   pid = np->pid;
-  np->state = RUNNABLE;
 
-  np->exe = proc->exe;
-
+  begin_op();
+  np->exe = namei(proc->cmdline);
+  end_op();
   safestrcpy(np->cmdline, proc->cmdline, strlen(proc->cmdline));
 
   for (i=0; i < MAXARGS; i++)  {
@@ -206,8 +206,10 @@ exit(void)
 
   begin_op();
   iput(proc->cwd);
+  iput(proc->exe);
   end_op();
   proc->cwd = 0;
+  proc->exe = 0;
 
   acquire(&ptable.lock);
 

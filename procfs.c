@@ -18,7 +18,7 @@ extern void procLock();
 extern void procRelease();
 
 int  atoi(const char *s);
-int  itoa(int num , char *stringNum );
+int  itoa(uint num , char *stringNum );
 
 #define BASE_DIRENT_NUM 1000
 #define BASE_DNUM_LIM BASE_DIRENT_NUM+ NPROC
@@ -153,21 +153,18 @@ int getProcEntry(uint pid ,char *buf, struct inode *ip) {
   memmove(de.name, "..", 3);
   memmove(buf + sizeof(de), (char*)&de, sizeof(de));
 
-  //create "cmdline " reference
-  
+  //create "cmdline " reference 
   de.inum = CMDLINE_DNUM+pid;
-  // cprintf("######### %d %p\n", de.inum, r);
-  
   memmove(de.name, "cmdline", 8);
   memmove(buf + 2*sizeof(de), (char*)&de, sizeof(de));
 
   //create "cwd " reference
-  de.inum = CWD_DNUM + pid;
+  de.inum = p->cwd->inum;
   memmove(de.name, "cwd", 4);
   memmove(buf + 3*sizeof(de), (char*)&de, sizeof(de));
 
   //create "exe " reference
-  de.inum = EXE_DNUM + pid;
+  de.inum = (p->exe)->inum;
   memmove(de.name, "exe", 4);
   memmove(buf + 4*sizeof(de), (char*)&de, sizeof(de));
 
@@ -219,7 +216,7 @@ procfsread(struct inode *ip, char *dst, int off, int n) {
 
         if(!p)
          return 0;
-
+//        char c [100];
 
         switch (ip->inum-pid){
          
@@ -230,8 +227,8 @@ procfsread(struct inode *ip, char *dst, int off, int n) {
                             memmove(buf, p->cmdline, size);
 
                             for (i =1 ; i < MAXARGS; i++){
-                            	if (p->args[i]){
 
+                            	if (p->args[i]){
                             		memmove(buf+size, " ", 1);
                             		size++ ;
                             		memmove(buf+size, p->args[i], strlen(p->args[i]));
@@ -239,21 +236,92 @@ procfsread(struct inode *ip, char *dst, int off, int n) {
                             		size+= strlen(p->args[i]);
                             	}
                             }
-
-//                            size++;
 							memmove(buf+size, "\n",1);
 							size++;
                             break;
-              case CWD_DNUM:
-                            size= readi(p->exe, (char*)&dst, off, sizeof(struct dirent));
-                            // memmove(buf, (char*)&p->exe, size);
-                            cprintf("Here \n");
-                            break;
-              // case EXE_DNUM:
+              case FDINFO_DNUM:
+            	  	  	  	size= 0;
+            	  	  	  	for (i =1 ; i < NOFILE; i++){
+            	  	  	  		if (p->ofile[i] && p->ofile[i]->ref>0){
 
-              //               return readi(p->exe, dst, off, n);
-              //               // readi(dp, (char*)&de, off, sizeof(de)) 
-              //               break; 
+            	  	  	  		   memmove(buf+size, "fd: ",4 );
+            	  	  	  		   size+=4;
+            	  	  	  		   int k= itoa(i, buf+size);
+            	  	  	  		   size+=k;
+            	  	  	  		   //cprintf ("\n #### %d \n", itoa(i, buf+size));
+            	  	  	  		   memmove(buf+size, " ", 1);
+            	  	  	  		   size++ ;
+
+            	  	  	  		   memmove(buf+size, "type: ",6);
+            	  	  	  	       size+=6;
+
+            	  	  	  		   if (p->ofile[i]->type == FD_INODE){
+            	  	  	  			   	   	memmove(buf+size, "INODE ",6);
+            	  	  	  		            size+=6;
+            	  	  	  		   }
+            	  	  	  		   if (p->ofile[i]->type == FD_PIPE){
+            	  	      	  	  	  	    memmove(buf+size, "PIPE ",5);
+            	  	  	  	            	size+=5;
+            	  	  	  	       }
+            	  	  	  		   if (p->ofile[i]->type == FD_NONE){
+											memmove(buf+size, "NONE ",5);
+											size+=5;
+								   }
+            	  	  	  		   memmove(buf+size, "position: ",10);
+								   size+=10;
+								   k= itoa(p->ofile[i]->off, buf+size);
+//								   k= itoa(p->ofile[i]->off, c);
+//								   cprintf("\n  len: %d n: %d  s: %s ### \n",k,p->ofile[i]->off,c );
+
+								   size+=k+1;
+								   memmove(buf+size, " ", 1);
+								   size++ ;
+
+								   memmove(buf+size, "flags: ",7);
+								   size+=7;
+								   if (p->ofile[i]->readable){
+									   memmove(buf+size, "r ", 2);
+									   size+=2 ;
+								   }
+								   if (p->ofile[i]->writable){
+									   memmove(buf+size, "w ", 2);
+									   size+=2 ;
+								   }
+								   memmove(buf+size, "\n\0", 2);
+								   size++ ;
+            	  	  	  		}
+            	  	  	  	}
+
+            	  	  	    break;
+              case STATUS_DNUM:
+            	  	  	    size= 0;
+            	  	  	  	memmove(buf, "state: ",7);
+            	            size+=7;
+
+            	            if (p->state == SLEEPING){
+							   memmove(buf+size, "SLEEPING ", 9);
+							   size+=9 ;
+						    }
+            	            if (p->state == RUNNING){
+							   memmove(buf+size, "RUNNING ", 9);
+							   size+=9 ;
+						    }
+            	            if (p->state == RUNNABLE){
+							   memmove(buf+size, "RUNNABLE ", 10);
+							   size+=9 ;
+							}
+
+            	            memmove(buf+size, "mem-size: ",10);
+            	            size+=10;
+
+            	            int k= itoa( p->sz, buf+size)+1;
+							size+=k;
+							memmove(buf+size, "\n\0", 2);
+							size++ ;
+            	  	  	  	break;
+
+
+
 
         }
     }
@@ -288,10 +356,13 @@ procfsinit(void)
 //receives an integer and set stringNum to its string representation
 // return the number of charachters in string num;
 
-int  itoa(int num , char *stringNum ){
+int  itoa(uint num , char *stringNum ){
 
   int i, rem, len = 0, n;
-
+  	if (num == 0){
+  		stringNum[0]='0';
+  		len=1;
+  	}
     n = num;
     while (n != 0)
     {

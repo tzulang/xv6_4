@@ -166,7 +166,6 @@ iinit(void)
 {
   initlock(&icache.lock, "icache");
 }
-
 static struct inode* iget(uint dev, uint inum);
 
 //PAGEBREAK!

@@ -53,8 +53,8 @@ exec(char *path, char **argv)
       goto bad;
   }
 
-  proc->exe= ip;
-
+  // proc->exe= ip->inum;
+  proc->exe = namei(path);
   iunlockput(ip);
   end_op();
   ip = 0;
